@@ -108,15 +108,44 @@ http://localhost:8501
 
 ---
 
-## 📖 示例工作流
+### 工作流程
 
-1. 打开应用 → 选择主题（如 *Food & Drink*）
-2. 添加单词（输入 `word, phonetic, meaning, phrase, familiarity`）
-3. 数据实时保存到 `corpus.db`
-4. 使用检索/过滤功能快速复习
-5. 定期导出 Excel 进行备份
+#### 1. 启动
+浏览器会打开一个本地页面（若未自动打开，把终端里显示的本地地址复制到浏览器）。
 
----
+#### 2. 网页端功能
+
+**🔍 浏览 & 复习**  
+- 按主题和熟悉度筛选  
+- 关键字搜索（匹配单词、释义、例句、短语）  
+- 支持快速操作：  
+  - 「熟悉度 +1 / −1」  
+  - 「直接设定熟悉度」  
+  - 「删除」词条  
+
+**➕ 添加 / 编辑**  
+- 填写「单词/短语」「主题」「释义」等  
+- 实用短语支持多条（分号或换行分隔）  
+- 系统会在同主题下自动合并重名词条（合并释义/短语，并保留更高熟悉度）  
+
+**📥 导入 / 📤 导出**  
+- **导入**：上传 CSV 文件  
+  - 至少包含列：`word, topic`  
+  - 可选列：`phonetic, meaning, example, phrases, familiarity, notes`  
+  - `phrases` 多条用分号分隔  
+- **导出**：一键导出到 `exports/vocab_export.xlsx`，可直接用 Excel 打开或打印  
+
+#### 3. 数据与备份
+
+- **主数据**：`G:\corpus\data\vocab.json`（UTF-8 JSON）  
+- **备份**：每次写入前自动备份到 `G:\corpus\backups\`（时间戳文件名）  
+- **导出文件**：保存在 `G:\corpus\exports\`  
+
+#### 4. 小贴士与扩展
+
+- **主题命名**：尽量稳定（如 `Food`、`Travel`、`Health`），后期检索更方便  
+- **熟悉度建议**：1 = 陌生，3 = 一般，5 = 非常熟  
+- **批量导入**：已有 Excel/表格时另存为 CSV，确保表头符合： word, phonetic, meaning, topic, example, phrases, familiarity, notes（至少包含 `word, topic`）
 
 ## 🛠️ 后续扩展计划
 
