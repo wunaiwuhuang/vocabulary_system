@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-
+import os
 from config import EXPORT_DIR
-from storage import load_all, add_entry, update_familiarity, update_familiarity_entries, set_familiarity, set_familiarity_entries, delete_entry, delete_entries,  export_excel, import_csv_df
+from storage import load_all, add_entry, update_familiarity, update_familiarity_entries, set_familiarity, set_familiarity_entries, delete_entry, delete_entries,  export_csv, import_csv_df
 from models import Entry
 
 st.set_page_config(page_title="个人英语语料库", page_icon="📚", layout="wide")
@@ -153,10 +153,25 @@ with tab_browse:
 
         # ---- 导出excel ----
         st.markdown("---")
-        if st.button("📤 导出到 Excel"):
-            path = export_excel()
-            st.success(f"已导出到：{path}")
-            st.caption("文件保存在项目的 exports/ 文件夹内。")
+        if st.button("立即导出",key="review page"):
+            try:
+                # 判断运行环境
+                if "/mount/" in str(os.getcwd()):
+                    # Streamlit Cloud → 提供下载
+                    df = export_csv(return_df=True)
+                    csv_bytes = df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+                    st.download_button(
+                        label="📥 点击下载导出的 CSV",
+                        data=csv_bytes,
+                        file_name="vocab_export.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    # 本地 → 保存到 exports 文件夹
+                    path = export_csv()
+                    st.success(f"已导出到：{path}")
+            except Exception as e:
+                st.error(f"导出失败：{e}")
 
 # ---- Add/Edit Tab ----
 with tab_add:
@@ -211,7 +226,22 @@ with tab_import:
 
     st.markdown("---")
     st.subheader("导出 Excel")
-    if st.button("立即导出"):
-        path = export_excel()
-        st.success(f"已导出到：{path}")
-        st.caption("文件保存在项目的 exports/ 文件夹内。")
+    if st.button("立即导出",key="upload page"):
+        try:
+            # 判断运行环境
+            if "/mount/" in str(os.getcwd()):
+                # Streamlit Cloud → 提供下载
+                df = export_csv(return_df=True)
+                csv_bytes = df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+                st.download_button(
+                    label="📥 点击下载导出的 CSV",
+                    data=csv_bytes,
+                    file_name="vocab_export.csv",
+                    mime="text/csv"
+                )
+            else:
+                # 本地 → 保存到 exports 文件夹
+                path = export_csv()
+                st.success(f"已导出到：{path}")
+        except Exception as e:
+            st.error(f"导出失败：{e}")

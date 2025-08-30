@@ -126,18 +126,37 @@ def delete_entries(entry_ids: list[str]) -> int:
     return deleted
 
 # ---------- 导入/导出 ----------
-def export_excel(filepath: Optional[Path] = None) -> Path:
-    filepath = filepath or (EXPORT_DIR / "vocab_export.xlsx")
+#def export_excel(filepath: Optional[Path] = None) -> Path:
+#    filepath = filepath or (EXPORT_DIR / "vocab_export.xlsx")
+#    rows = load_all()
+#    if not rows:
+#        # 也导出空结构，方便后续填充
+#        rows = []
+#    df = pd.DataFrame(rows)
+#    # phrases 列转字符串以便 Excel 显示
+#    if "phrases" in df.columns:
+#        df["phrases"] = df["phrases"].apply(lambda v: "; ".join(v) if isinstance(v, list) else (v or ""))
+#    df.to_excel(filepath, index=False)
+#    return filepath
+
+def export_csv(filepath: Optional[Path] = None, return_df: bool = False):
+    """导出词库为 CSV 文件或 DataFrame"""
+    filepath = filepath or (EXPORT_DIR / "vocab_export.csv")
     rows = load_all()
     if not rows:
-        # 也导出空结构，方便后续填充
         rows = []
     df = pd.DataFrame(rows)
-    # phrases 列转字符串以便 Excel 显示
+    # phrases 列转字符串以便 CSV 显示
     if "phrases" in df.columns:
-        df["phrases"] = df["phrases"].apply(lambda v: "; ".join(v) if isinstance(v, list) else (v or ""))
-    df.to_excel(filepath, index=False)
-    return filepath
+        df["phrases"] = df["phrases"].apply(
+            lambda v: "; ".join(v) if isinstance(v, list) else (v or "")
+        )
+
+    if return_df:
+        return df  # 提供给 Streamlit download_button 使用
+    else:
+        df.to_csv(filepath, index=False, encoding="utf-8-sig")
+        return filepath
 
 def import_csv_df(df: "pd.DataFrame") -> int:
     '''从 DataFrame 导入，要求列名至少包含：word, topic。
