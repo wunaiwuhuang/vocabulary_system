@@ -158,6 +158,7 @@ def export_csv(filepath: Optional[Path] = None, return_df: bool = False):
         df.to_csv(filepath, index=False, encoding="utf-8-sig")
         return filepath
 
+# 如果直接调用add_entry的话，会频繁调用_write_raw进而导致频繁调用_back_up，会产生非常多的备份信息。故import_csv_df只能完全重构
 def import_csv_df(df: "pd.DataFrame") -> int:
     '''从 DataFrame 导入，要求列名至少包含：word, topic。
     可选字段：phonetic, meaning, example, phrases, familiarity, notes。
@@ -171,6 +172,11 @@ def import_csv_df(df: "pd.DataFrame") -> int:
     # 统一小写列名 -> 原名映射
     cols_map = {c.lower(): c for c in df.columns}
     count = 0
+    
+    # 先读取当前数据
+    rows = _read_raw()
+    modified = False
+    
     for _, row in df.iterrows():
         def get(name, default=""):
             return row.get(cols_map.get(name, name), default) if cols_map.get(name, name) in row else default
@@ -183,7 +189,8 @@ def import_csv_df(df: "pd.DataFrame") -> int:
         except Exception:
             familiarity = 1
 
-        e = Entry.create(
+        # 创建词条对象（使用Entry.create确保ID正确生成）
+        entry = Entry.create(
             word=str(get("word", "")).strip(),
             phonetic=str(get("phonetic", "")).strip(),
             meaning=str(get("meaning", "")).strip(),
@@ -193,7 +200,39 @@ def import_csv_df(df: "pd.DataFrame") -> int:
             familiarity=familiarity,
             notes=str(get("notes", "")).strip(),
         )
-        if e.word and e.topic:
-            add_entry(e)
-            count += 1
+        
+        if not entry.word or not entry.topic:
+            continue  # 跳过无效数据
+            
+        # 使用与add_entry完全相同的去重和合并逻辑
+        found = False
+        for r in rows:
+            if (r.get("word", "").lower() == entry.word.lower() and 
+                r.get("topic", "").lower() == entry.topic.lower()):
+                # 合并：更新释义/音标/例句/短语/备注，保留熟悉度较高的
+                r["phonetic"] = entry.phonetic or r.get("phonetic", "")
+                r["meaning"] = entry.meaning or r.get("meaning", "")
+                r["example"] = entry.example or r.get("example", "")
+                # 合并 phrases 去重
+                existing_phrases = set(r.get("phrases", []) or [])
+                new_phrases = set(entry.phrases)
+                r["phrases"] = sorted(list(existing_phrases | new_phrases))
+                r["notes"] = entry.notes or r.get("notes", "")
+                r["familiarity"] = max(int(r.get("familiarity", 1) or 1), int(entry.familiarity or 1))
+                r["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                found = True
+                modified = True
+                break
+        
+        if not found:
+            # 新增词条
+            rows.append(entry.to_dict())
+            modified = True
+        
+        count += 1
+    
+    # 所有操作完成后，一次性写入和备份
+    if modified:
+        _write_raw(rows)
+    
     return count
